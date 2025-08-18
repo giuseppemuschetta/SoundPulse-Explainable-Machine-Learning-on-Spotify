@@ -160,7 +160,7 @@ See: `notebooks/5_regression.ipynb`.
 
 ## Imbalanced Learning
 
-**Objective** Predict very imbalanced "explicit" binary variable (95% - 5%) using advanced techniques like SMOTE / Tomek-Links
+**Objective** Predict very imbalanced "explicit" binary variable (91% - 9%) using advanced techniques like SMOTE / Tomek-Links
 
 **Models** SMOTE / SMOTE-Tomek / undersampling pipelines; class weights and sample weights; 
 
