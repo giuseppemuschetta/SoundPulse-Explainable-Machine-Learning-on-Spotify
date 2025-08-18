@@ -22,10 +22,11 @@
 * [Genre Classification (10 classes)](#genre-classification-10-classes)
 * [Explainability](#explainability)
 * [Popularity Regression](#popularity-regression)
+* [Imbalanced Learning](#imbalanced-learning)
 * [Project structure](#project-structure)
 * [Reproducible setup](#reproducible-setup)
 * [How to run](#how-to-run)
-* [Model zoo & evaluation](#model-zoo--evaluation)
+* [Models & evaluation](#models-and-evaluation)
 * [Highlights](#highlights)
 * [Roadmap](#roadmap)
 * [Hire me for](#hire-me-for)
@@ -157,6 +158,18 @@ See: `notebooks/5_regression.ipynb`.
 
 ---
 
+## Imbalanced Learning
+
+**Objective** Predict very imbalanced "explicit" binary variable (95% - 5%) using advanced techniques like SMOTE / Tomek-Links
+
+**Models** SMOTE / SMOTE-Tomek / undersampling pipelines; class weights and sample weights; 
+
+**Focal Loss** for the deep MLP; 
+
+**metrics**: **Macro-F1** and **Balanced Accuracy**.
+
+---
+
 ## Project structure
 
 ```text
@@ -223,11 +236,11 @@ All stages persist models (`models/`), CV logs (`results/`), and plots (`plots/`
 
 ---
 
-## Models & evaluation
+## Models and evaluation
 
 | Task           | Models                                                                 | Primary metrics                                        | Notes                                                          |
 | -------------- | ---------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
-| Classification | Linear SVC, RandomForestClassifier, **Deep MLP (Keras: LayerNorm+GELU, decaying Dropout 0.45→0.10, AdamW warm-up+cosine, class-weighted, early stopping, checkpoints)** | Accuracy, Macro-F1, Top-3/Top-5 accuracy, ROC-AUC (OvR) | 10 classes (114 → 10); SHAP waterfalls; confusion matrices     |
+| Classification | Linear SVC, RandomForestClassifier, **Deep MLP (Keras: LayerNorm+GELU, decaying Dropout 0.45→0.10, AdamW warm-up+cosine)** with **Imbalanced Learning** (SMOTE/SMOTE-Tomek/undersampling, class/sample weights, Focal Loss) | Accuracy, **Balanced Accuracy**, **Macro-F1**, Top-3/Top-5, ROC-AUC (OvR) | 10 classes (114 → 10); SHAP waterfalls; confusion matrices     |
 | Regression     | Ridge, Linear SVR, RF, XGB, GBR                                        | R², RMSE, MAE                                           | Uniform CV, parity/residual diagnostics, permutation importance |
 
 ---
