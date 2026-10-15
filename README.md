@@ -1,288 +1,455 @@
-# SoundPulse — End‑to‑End ML on Spotify: From EDA to Explainable Predictions
+<div align="center">
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg?logo=python\&logoColor=white)](https://www.python.org/)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange.svg?logo=scikitlearn\&logoColor=white)](https://scikit-learn.org/)
-[![XGBoost](https://img.shields.io/badge/XGBoost-GBDT-66CC66.svg)](https://xgboost.ai/)
-[![SHAP](https://img.shields.io/badge/Explainability-SHAP-8A2BE2.svg)](https://shap.readthedocs.io/)
-[![Jupyter](https://img.shields.io/badge/Jupyter-Notebooks-F37626.svg?logo=Jupyter\&logoColor=white)](https://jupyter.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-9cf.svg)](#license)
+# 🎧 SoundPulse
+### End-to-End Machine Learning on 114,000 Spotify Tracks
 
-> **Executive summary.** This repository delivers a complete ML workflow on Spotify tracks: **EDA → Outlier Detection → Exploratory Clustering → Multiclass Genre Classification (10 classes from 114 raw genres, including a deep learning model: TensorFlow/Keras MLP with LayerNorm + GELU, decaying Dropout 0.45→0.10, AdamW with warm-up + cosine annealing, class-weighted training, early stopping & checkpoints) → Popularity Regression**, with **explainability** (global & local) and **production-minded** evaluation.
-
+**From raw audio features to explainable predictions — data preparation, anomaly detection, clustering, deep learning, regression and imbalanced learning in one pipeline.**
 
 ---
 
-## Table of Contents
-
-* [Why it matters](#why-it-matters)
-* [Project scope](#project-scope)
-* [Data & EDA](#data--eda)
-* [Outlier Detection](#outlier-detection)
-* [Exploratory Clustering](#exploratory-clustering)
-* [Genre Classification (10 classes)](#genre-classification-10-classes)
-* [Explainability](#explainability)
-* [Popularity Regression](#popularity-regression)
-* [Imbalanced Learning](#imbalanced-learning)
-* [Project structure](#project-structure)
-* [Reproducible setup](#reproducible-setup)
-* [How to run](#how-to-run)
-* [Models & evaluation](#models-and-evaluation)
-* [Highlights](#highlights)
-* [Roadmap](#roadmap)
-* [Hire me for](#hire-me-for)
-* [License](#license)
+**Author:** Giuseppe Muschetta<br>
+**University:** University of Pisa<br>
+**Degree:** M.Sc. in Data Science & Business Informatics
 
 ---
 
-## Why it matters
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-Keras-FF6F00?logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
+[![XGBoost](https://img.shields.io/badge/XGBoost-GBDT-189FDD)](https://xgboost.ai/)
+[![SHAP](https://img.shields.io/badge/Explainability-SHAP-8A2BE2)](https://shap.readthedocs.io/)
+[![imbalanced-learn](https://img.shields.io/badge/imbalanced--learn-SMOTE-2E8B57)](https://imbalanced-learn.org/)
+[![Apple Silicon](https://img.shields.io/badge/Trained%20on-Apple%20M3%20Ultra%20(Metal%20GPU)-000000?logo=apple&logoColor=white)](#-engineering-highlights)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-* **Predict what resonates.** Anticipate track **popularity** to inform promo, playlisting, and spend.
-* **Understand the why.** Feature‑level drivers via SHAP & permutation importance translate models into **actionable levers** (danceability, energy, tempo, etc.).
-* **De‑risk** with **anomaly screening** and **segment discovery** before committing budget.
-* **Operational rigor.** Reproducible CV, artifact persistence, consistent reporting, clean handoff.
+<img src="assets/07_kmeans_clusters_3d.png" width="560" alt="K-Means clusters of 108k Spotify tracks projected in 3D">
 
----
-
-## Project scope
-
-This repo covers the full ML lifecycle on Spotify audio features:
-
-1. **Data Understanding & Preparation** — rigorous cleaning, typing, scaling; stratified splits with seed control.
-2. **Outlier Detection** — LOF to identify anomalous tracks and guide data quality decisions.
-3. **Exploratory Clustering** — discover latent structures and micro‑genres to inform marketing personas.
-4. **Multiclass Genre Classification (10 classes)** — compress 114 raw genres into **10 consolidated** classes and train interpretable classifiers.
-5. **Popularity Regression** — compare linear vs. non‑linear regressors under a uniform cross‑validation and diagnostics protocol.
+</div>
 
 ---
 
-## Data & EDA
+## ✨ At a glance
 
-**Source.** Spotify track‑level audio features (e.g., `danceability`, `energy`, `acousticness`, `instrumentalness`, `liveness`, `loudness`, `speechiness`, `tempo`, `valence`, `duration_ms`, plus metadata like `key`, `mode`, `time_signature`).
+<div align="center">
 
-**EDA focus.**
+| 🎵 **114,000** tracks | 🏷️ **114 → 10** genres | 🧠 **4.6 M**-parameter deep net | 📓 **6** notebooks |
+|:---:|:---:|:---:|:---:|
+| **97.5 %** cluster-recovery accuracy | **0.90** macro ROC-AUC on 10 genres | **18×** R² gain over linear models | **+59 %** minority-class recall with SMOTE |
 
-* Sanity checks (missingness, typing), scaling/standardization for model comparability.
-* Distributional analysis and pairwise relationships to detect leakage or degenerate features.
-* Target exploration: class counts for the **10‑genre taxonomy** and distribution of **popularity** for regression tasks.
+</div>
 
-See: `notebooks/1_data_preparation.ipynb`.
+SoundPulse takes a public Spotify catalogue of 114,000 tracks and runs it through the **full data-science lifecycle**. Each stage is a self-contained notebook that writes a clean dataset for the next one:
 
----
+> **Understand → Clean → Discover → Classify → Explain → Predict → Rebalance**
 
-## Outlier Detection
+The models answer four concrete questions:
 
-**Method.** Local Outlier Factor (LOF) on standardized features.
-
-**Why.** Early anomaly flagging improves data reliability and helps A\&R/QA triage unusual tracks (production artifacts, metadata errors, extreme audio profiles).
-
-**Deliverables.**
-
-* Outlier scores & flags.
-* Visual diagnostics: density plots, neighborhood consistency.
-
-See: `notebooks/2_outlier_detection.ipynb`.
+1. **Which tracks are anomalous?** → Local Outlier Factor flags and removes the 5 % least typical tracks.
+2. **What natural "sound families" exist?** → K-Means finds 9 segments, and three different classifiers confirm they are real and separable.
+3. **Can audio features alone tell you the genre?** → A Random Forest and a custom residual deep network classify tracks into 10 macro-genres. SHAP and gradient attribution explain *why*.
+4. **Can we predict popularity, and spot explicit content?** → Tree ensembles beat linear baselines by 18× in R², and SMOTE pipelines raise recall on the rare *explicit* class.
 
 ---
 
-## Exploratory Clustering
+## 📚 Table of contents
 
-**Goal.** Uncover latent segments/micro‑genres to support curation and targeted campaigns.
-
-**Approach.** K‑means (and variants where relevant) on standardized features; selection guided by inertia/`silhouette_score` and business plausibility.
-
-**Outputs.**
-
-* Cluster assignments and centroids.
-* Profile cards per cluster (top features, representative tracks).
-
-See: `notebooks/3_clustering.ipynb`.
-
----
-
-## Genre Classification (10 classes)
-
-**From 114 → 10.** Raw Spotify genres were consolidated into **10 macro‑classes** via frequency thresholds and semantic grouping to balance class sizes and interpretability.
-
-**Models.**
-
-* **RandomForestClassifier** — strong non‑linear baseline, robust to feature scaling and outliers; used with stratified splits and consistent reporting.
-* **Advanced Neural Network (Deep MLP, TensorFlow/Keras)** — designed for class‑imbalance, stability, and expressive power:
-
-  * **Input:** standardized feature vector; optional `GaussianNoise(0.1)` for regularization.
-  * **Hidden stack (representative):** `1536 → 768 → 768 → 768 → 512 → 384 → 384 → 256 → 128 → 64` units.
-  * **Blocks:** each dense layer is followed by `LayerNormalization → GELU → Dropout`, with a **decaying dropout schedule** `0.45 → 0.40 → 0.35 → 0.30 → 0.25 → 0.20 → 0.15 → 0.10`.
-  * **Regularization & inits:** `HeNormal` on most hidden layers; pervasive **L2=3e‑4** (and selective **L1/L2** on the output layer); one **sigmoid gating** dense at 768 units for additional non‑linearity control; final **Softmax** over 10 classes.
-  * **Optimizer:** **AdamW** (lr **5e‑4**, β=(0.9, 0.999), ε=1e‑7) with **gradient clipping** (`clipnorm=1.0`).
-  * **Schedule:** **Warm‑up 10 epochs → Cosine annealing** for the remaining training.
-  * **Training setup:** `epochs_total=350`, `batch_size=4096`, `validation_split=0.2`, **class weights** via `compute_class_weight('balanced', ...)`.
-  * **Callbacks:** `EarlyStopping(monitor='val_loss', patience=35, restore_best_weights=True)`, `ReduceLROnPlateau(patience=15, min_lr=1e‑7)`, `ModelCheckpoint(save_best_only=True, monitor='val_loss')`.
-  * **Loss & metrics:** `sparse_categorical_crossentropy`; metrics include **accuracy**, **Top‑3** and **Top‑5 accuracy**.
-
-**Protocol.**
-
-* Classical models use stratified splits and, where applicable, **RepeatedKFold** CV with multi‑metric scoring (Accuracy, Macro‑F1, ROC‑AUC OvR when appropriate).
-* The neural model uses a held‑out **validation split (20%)** with early stopping and LR scheduling; artifacts and plots are persisted like the other models.
-
-**Reporting.**
-
-* Confusion matrices and per‑class metrics; Macro‑F1 and precision/recall breakdowns.
-* SHAP **waterfall plots** for local explanations on correctly/incorrectly classified examples.
-
-See: `notebooks/4_classification_explainability.ipynb`.
-
-## Explainability
-
-**Global.** Permutation importance to rank universal drivers; SHAP summary plots to visualize feature impact distribution.
-
-**Local.** SHAP waterfall plots for per‑track narratives: why this song is predicted as a given genre or why its popularity is high/low.
-
-**Value.** Moves beyond accuracy into **decision support** for A\&R, curation, and marketing.
+- [Pipeline architecture](#-pipeline-architecture)
+- [1 · Data understanding & preparation](#1--data-understanding--preparation)
+- [2 · Outlier detection](#2--outlier-detection-with-local-outlier-factor)
+- [3 · Clustering](#3--clustering-discovering-latent-sound-families)
+- [4 · Genre classification & explainability](#4--10-class-genre-classification--explainability)
+- [5 · Popularity regression](#5--popularity-regression)
+- [6 · Imbalanced learning](#6--imbalanced-learning-predicting-explicit-content)
+- [Results scoreboard](#-results-scoreboard)
+- [Key insights](#-key-insights)
+- [Engineering highlights](#-engineering-highlights)
+- [Repository structure](#-repository-structure)
+- [Getting started](#-getting-started)
+- [Roadmap](#-roadmap)
+- [About the author](#-about-the-author)
 
 ---
 
-## Popularity Regression
+## 🗺️ Pipeline architecture
 
-**Objective.** Predict track **popularity** as a continuous target to prioritize releases and campaigns.
+```mermaid
+flowchart LR
+    A[(spotify_raw.csv<br/>114,000 × 21)] --> B[1 · Data Understanding<br/>& Preparation]
+    B --> C[(spotify_prepared.csv<br/>113,999 × 19)]
+    C --> D[2 · Outlier Detection<br/>LOF · k=15 · 5%]
+    D --> E[(spotify_cleaned.csv<br/>108,299 × 66)]
+    E --> F[3 · Clustering<br/>K-Means k=9]
+    E --> G[4 · Genre Classification<br/>RF · Deep MLP · SHAP]
+    E --> H[5 · Popularity Regression<br/>Ridge · SVR · RF · XGB · GBR]
+    E --> I[6 · Imbalanced Learning<br/>SMOTE · Tomek · SMOTETomek]
+```
 
-**Models (uniform protocol).**
-
-* **Ridge Regression**, **Linear SVR** (linear baselines).
-* **RandomForestRegressor**, **XGBoostRegressor**, **GradientBoostingRegressor** (non‑linear ensembles).
-
-**Evaluation.**
-
-* RepeatedKFold CV with multi‑metric scoring (**R²**, **RMSE**, **MAE**), parity plots, residual diagnostics, and permutation importance.
-* Best estimators and CV logs persisted for auditability and rapid iteration.
-
-See: `notebooks/5_regression.ipynb`.
-
----
-
-## Imbalanced Learning
-
-**Objective** Predict very imbalanced "explicit" binary variable (91% - 9%) using advanced techniques like SMOTE / Tomek-Links
-
-**Models** SMOTE / SMOTE-Tomek / undersampling pipelines; class weights and sample weights; 
-
-**Focal Loss** for the deep MLP; 
-
-**metrics**: **Macro-F1** and **Balanced Accuracy**.
+| # | Notebook | Purpose | Main techniques |
+|:-:|---|---|---|
+| 1 | [`1_data_understanding_and_preparation.ipynb`](1_data_understanding_and_preparation.ipynb) | EDA, feature engineering, genre taxonomy | Distributions, Pearson & Spearman, 114 → 10 genre mapping |
+| 2 | [`2_outlier_detection.ipynb`](2_outlier_detection.ipynb) | Data-quality screening | One-Hot + Standardization, k-distance elbow, **LOF**, PCA |
+| 3 | [`3_clustering.ipynb`](3_clustering.ipynb) | Latent segment discovery | **K-Means** (elbow + silhouette), PCA 2D/3D, NN / Decision Tree validation |
+| 4 | [`4_classification_explainability.ipynb`](4_classification_explainability.ipynb) | 10-class genre prediction | **Random Forest**, **residual deep MLP**, **SHAP**, permutation & gradient importance |
+| 5 | [`5_regression.ipynb`](5_regression.ipynb) | Popularity forecasting | Ridge, Linear SVR, **Random Forest**, **XGBoost**, Gradient Boosting |
+| 6 | [`6_imbalanced_learning.ipynb`](6_imbalanced_learning.ipynb) | Explicit-content detection (91 / 9 split) | **SMOTE**, Tomek Links, Random Under-Sampling, **SMOTETomek** |
 
 ---
 
-## Project structure
+## 1 · Data understanding & preparation
+
+**Dataset.** 114,000 tracks × 21 columns: 1,000 tracks for each of 114 Spotify genres. Each track has metadata (artists, album, track name, popularity, explicit flag) and Spotify's audio descriptors (`danceability`, `energy`, `loudness`, `speechiness`, `acousticness`, `instrumentalness`, `liveness`, `valence`, `tempo`, `key`, `mode`, `time_signature`, `duration_ms`).
+
+**What was done**
+
+- 🧹 **Cleaning.** Removed the single row with missing metadata, plus the technical columns `Unnamed: 0` and `track_id`.
+- 🎼 **Musical feature engineering.** Merged `key` (0–11) and `mode` (0/1) into one readable **`keymode`** feature such as *"C# minor"* or *"A major"*, with 24 possible values.
+- ⏱️ Converted `duration_ms` → **`duration_mins`**, cast `explicit` to a binary integer and renamed `track_genre` → `genres`.
+- 🏷️ **Genre taxonomy design.** Hand-built a semantic mapping that compresses **114 raw genres into 10 macro-categories**. For example, *metal / black-metal / death-metal / grindcore / metalcore* become **Metal & Hardcore**, and *k-pop / j-pop / anime / cantopop / afrobeat / reggae* become **World & Regional**.
+
+<p align="center">
+  <img src="assets/01_genre_distribution.png" width="70%" alt="Distribution of the 10 macro-genres">
+</p>
+
+The resulting target is realistically **imbalanced**: *World & Regional* (21.1 %) and *Electronic & Dance* (20.2 %) dominate, while *Hip-Hop & R&B* has only 1.8 % of the tracks. This is a deliberate challenge for every classifier that follows.
+
+<p align="center">
+  <img src="assets/02_feature_distributions.png" width="49%" alt="Distributions of numeric features">
+  <img src="assets/03_spearman_correlations.png" width="49%" alt="Spearman correlation matrix">
+</p>
+
+**EDA takeaways**
+
+- `popularity` has a large spike at **(near) zero**: a sizeable share of the catalogue has essentially no plays.
+- `instrumentalness`, `speechiness` and `liveness` are heavily right-skewed. `acousticness` is bimodal.
+- The strongest monotonic relations are **energy ↔ loudness (ρ = 0.75)** and **energy ↔ acousticness (ρ = −0.71)**. These are physically meaningful, because loud tracks are energetic and acoustic tracks are quiet.
+- Popularity has **almost no monotonic correlation (|ρ| ≤ 0.08)** with any single audio feature. This already suggests that popularity can only be modelled through non-linear interactions, which Notebook 5 confirms.
+
+---
+
+## 2 · Outlier detection with Local Outlier Factor
+
+**Feature space.** 13 standardized numeric features plus one-hot `keymode` and `genres_10` give **47 dimensions**.
+
+**Choosing `n_neighbors` without guessing.** A single `NearestNeighbors` fit (k = 100) yields the average distance to the k-th neighbour for every k. The knee of that curve sets **k = 15**.
+
+**Detection.** `LocalOutlierFactor(n_neighbors=15, contamination=0.05)` flags **5,700 tracks (5.00 %)**. The most extreme ones are interpretable:
+
+- tracks with **zero popularity** sitting among very popular look-alikes, such as a Kid Cudi and a Wiz Khalifa track on compilation albums;
+- **exact duplicates** of the same song listed under three different genres (*folk*, *songwriter*, *singer-songwriter*), a classic data-quality issue.
+
+<p align="center">
+  <img src="assets/04_lof_outliers_pca.png" width="75%" alt="LOF outliers on PCA 2D projection">
+</p>
+
+The ⭐ markers are the top 10 most anomalous tracks. Many outliers are *local* anomalies inside dense regions, not just global extremes. This is exactly what LOF captures and what a simple z-score would miss.
+
+➡️ Output: **`spotify_cleaned.csv`**, 108,299 tracks × 66 engineered columns, used by every downstream notebook.
+
+---
+
+## 3 · Clustering: discovering latent "sound families"
+
+**K-Means** (`k-means++`, Elkan) was fitted for k = 2…50 (inertia) and k = 2…30 (silhouette on a 20k sample). Local maxima of the silhouette curve were then detected automatically.
+
+<p align="center">
+  <img src="assets/05_silhouette_curve.png" width="49%" alt="Silhouette score vs k">
+  <img src="assets/06_kmeans_clusters_2d.png" width="49%" alt="K-Means clusters in PCA 2D">
+</p>
+
+**k = 9** is the best non-trivial local maximum (silhouette 0.123), and it agrees with the elbow region of the inertia curve. The PCA projection shows **9 well-ordered, contiguous bands** that run from acoustic/instrumental tracks (left) to high-energy produced tracks (right).
+
+### Are the clusters real? Two independent checks
+
+Clusters that a supervised model can recover from the raw features are not artefacts of the algorithm. Two classifiers were trained to predict the cluster label:
+
+| Validator | Test accuracy | Notes |
+|---|:---:|---|
+| **Deep neural network** (512→256→128→64, Swish, BatchNorm, AdamW) | **97.47 %** | Balanced acc. 98.0 %, Cohen's κ 0.970, MCC 0.970 |
+| **Decision Tree** (GridSearch over 2,940 configs × 5-fold CV) | **92.58 %** | Macro-F1 0.927, fully interpretable rules |
+
+<p align="center">
+  <img src="assets/08_cluster_validation_decision_tree.png" width="95%" alt="Decision Tree validation of clusters">
+</p>
+
+The tree shows **which features define the segments**: `energy`, `instrumentalness`, `explicit`, `popularity` and `danceability`. This gives each cluster a direct business reading, for example *"high-energy explicit tracks"* versus *"quiet instrumental tracks"*.
+
+---
+
+## 4 · 10-class genre classification & explainability
+
+**Task:** predict 1 of 10 macro-genres from **only 13 standardized audio/meta features**, with a 70/30 stratified split (75,809 train / 32,490 test).
+
+### 🌲 Model A: Random Forest (tuned)
+
+`GridSearchCV` over **160 configurations × 5-fold stratified CV** (800 fits), optimizing **macro-F1** with `class_weight="balanced"`.
+
+| Metric | Score |
+|---|:---:|
+| Accuracy | **58.5 %** (random guess 10 %, majority class 21 %) |
+| ROC-AUC OvR (macro / micro) | **0.898 / 0.917** |
+| Macro-F1 · Balanced accuracy | 0.535 · 0.540 |
+| Best per-genre AUC | Metal & Hardcore **0.954**, Latin & Brazilian **0.949** |
+
+<p align="center">
+  <img src="assets/09_rf_confusion_roc.png" width="100%" alt="Random Forest normalized confusion matrix and ROC curves">
+</p>
+
+### 🧠 Model B: custom residual deep network (TensorFlow / Keras)
+
+A deep network designed from scratch for tabular, imbalanced, multi-class data:
+
+```text
+Input(13)
+ └─ Dense 1536 → LayerNorm → GELU → GaussianNoise(0.1) → Dropout 0.45
+ └─ Residual block 768  (Dense → LN → GELU → Dropout → Dense → LN) ⊕ skip → GELU → Dropout 0.35
+ └─ Sigmoid gating (attention-style) 768 ⊙ x
+ └─ Dense 512 → LN → GELU → Dropout 0.30
+ └─ Residual block 384  ⊕ skip → GELU → Dropout 0.20
+ └─ Dense 256 → LN → GELU → AlphaDropout 0.15
+ └─ Dense 128 → LN → GELU → Dropout 0.10
+ └─ Dense 64  → LN → ReLU
+ └─ Softmax(10)   with L1/L2 regularization
+```
+
+| Design choice | Setting |
+|---|---|
+| Parameters | **4,649,034** trainable |
+| Optimizer | **AdamW** (lr 5e-4, weight decay 5e-5, `clipnorm=1.0`) |
+| LR schedule | **10-epoch linear warm-up → cosine annealing**, plus `ReduceLROnPlateau` backup |
+| Regularization | L2 3e-4 on every hidden layer, L1/L2 on output, decaying dropout 0.45 → 0.10, Gaussian noise |
+| Imbalance handling | Balanced class weights **smoothed with a 0.75 power and re-normalized** to avoid extreme weights |
+| Training | batch 4096, up to 350 epochs, `EarlyStopping(patience=35)`, best checkpoint restored (epoch 197) |
+| Hardware | Apple **M3 Ultra GPU via TensorFlow-Metal**, 28 CPU cores |
+
+<p align="center">
+  <img src="assets/10_mlp_training_dashboard.png" width="100%" alt="Deep MLP training dashboard">
+</p>
+
+| Metric | Score |
+|---|:---:|
+| Top-1 accuracy | **53.6 %** |
+| **Top-3 accuracy** | **84.1 %** |
+| **Top-5 accuracy** | **94.1 %** |
+| Macro recall | **0.542**, the highest of the two models |
+| Mean confidence on correct vs wrong predictions | 0.74 vs 0.55, so the model is well calibrated about its own uncertainty |
+
+<p align="center">
+  <img src="assets/11_mlp_topk_accuracy.png" width="100%" alt="Top-K accuracy analysis">
+</p>
+
+> **Why Top-K matters.** Genre boundaries are fuzzy: *indie-pop* vs *synth-pop*, *latin* vs *reggaeton*. For a recommender or a playlist-tagging assistant, the right genre in the **top 3 suggestions 84 % of the time** is a strong, product-ready result.
+
+<p align="center">
+  <img src="assets/12_mlp_per_class.png" width="85%" alt="Per-class performance">
+</p>
+
+### 🔍 Explainability: opening both black boxes
+
+**Deep network: permutation and gradient attribution**
+
+<p align="center">
+  <img src="assets/13_mlp_permutation_importance.png" width="49%" alt="Neural network permutation importance">
+  <img src="assets/14_mlp_gradient_heatmap.png" width="49%" alt="Per-genre gradient importance heatmap">
+</p>
+
+- **Permutation importance** (5 repeats): `popularity`, `energy`, `danceability`, `acousticness` and `loudness` drive the network. The **top 8 features explain 80 %** of its decisions.
+- **Gradient-based saliency per genre** (∂p(genre)/∂x via `tf.GradientTape`) shows *genre-specific* sensitivities. Electronic & Dance reacts strongly to `danceability`, `loudness` and `duration`. Country/Folk reacts most to `speechiness`.
+
+**Random Forest: SHAP (TreeExplainer)**
+
+<p align="center">
+  <img src="assets/15_shap_global_importance.png" width="100%" alt="SHAP multi-class feature importance">
+</p>
+
+SHAP values were computed for every class (500 × 13 × 10 tensor) and shown as stacked contributions per genre. **`acousticness`** is the strongest global separator and the top feature for 5 of the 10 genres, including Metal, Electronic, Classical and Latin.
+
+<p align="center">
+  <img src="assets/16_shap_waterfall.png" width="45%" alt="SHAP waterfall plot for a single prediction">
+</p>
+
+**Local explanation.** For a correctly classified *Electronic & Dance* track, low acousticness (+0.12) and high danceability (+0.09) raise the probability from a 0.10 base rate to 0.45. The notebook also explains a *mis*-classified Hip-Hop track, which helps debug where the model fails.
+
+---
+
+## 5 · Popularity regression
+
+**Task:** predict the (standardized) Spotify popularity score from 12 audio features. Every non-linear model was tuned with **`RepeatedKFold` (5 folds × 2 repeats)** and multi-metric scoring (R², RMSE, MAE), refitting on R².
+
+| Model | Test R² | Test RMSE | Test MAE | CV R² |
+|---|:---:|:---:|:---:|:---:|
+| Ridge (Tikhonov) | 0.029 | 0.975 | 0.809 | n/a |
+| Linear SVR | 0.014 | 0.982 | 0.802 | n/a |
+| XGBoost | 0.508 | 0.694 | 0.454 | 0.468 |
+| Gradient Boosting | 0.522 | 0.684 | **0.440** | 0.483 |
+| 🏆 **Random Forest (800 trees)** | **0.529** | **0.679** | 0.488 | **0.492** |
+
+The Random Forest's out-of-bag R² is 0.531, which confirms the test score.
+
+<p align="center">
+  <img src="assets/17_ridge_parity.png" width="42%" alt="Ridge parity plot">
+  <img src="assets/18_rf_parity.png" width="52%" alt="Random Forest parity plot">
+</p>
+
+**The plots show the difference:** the linear model collapses into a flat band and predicts the mean for every track. The Random Forest follows the diagonal. Moving from linear to ensemble models gives an **≈ 18× gain in R²** (0.029 → 0.529), which shows that popularity is driven by *interactions* between audio features, not by any single one.
+
+<p align="center">
+  <img src="assets/19_rf_permutation_importance.png" width="55%" alt="RF permutation importance">
+  <img src="assets/20_rf_residuals.png" width="40%" alt="RF residual distribution">
+</p>
+
+`valence`, `acousticness`, `duration`, `instrumentalness` and `danceability` are the strongest popularity drivers. Residuals are centred on zero and symmetric, with no systematic bias.
+
+---
+
+## 6 · Imbalanced learning: predicting explicit content
+
+**Task:** binary classification of the `explicit` flag, with **99,181 clean vs 9,118 explicit tracks (≈ 91 / 9)**. A model that always says "not explicit" already scores 91 % accuracy, so accuracy is ignored and every pipeline is optimized and compared on **macro-F1**, **minority-class recall** and **ROC-AUC**.
+
+All resampling is done **inside `imblearn.Pipeline`** and therefore only on the training folds. This prevents synthetic samples from leaking into validation.
+
+| Technique | Macro-F1 | Macro Precision | Macro Recall | ROC-AUC | **Recall (explicit)** | Precision (explicit) |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| Baseline RF (no balancing) | 0.760 | **0.924** | 0.695 | **0.945** | 0.395 | **0.901** |
+| 🏆 **SMOTE + RF** | **0.795** | 0.794 | 0.796 | 0.941 | 0.628 | 0.622 |
+| Tomek Links + Under-sampling + RF | 0.669 | 0.643 | **0.842** | 0.924 | **0.870** | 0.300 |
+| SMOTETomek + RF | 0.795 | 0.794 | 0.795 | 0.941 | 0.625 | 0.623 |
+
+<p align="center">
+  <img src="assets/21_smote_rf_metrics.png" width="60%" alt="SMOTE + RF metrics">
+  <img src="assets/22_smotetomek_probability_split.png" width="38%" alt="Predicted probability distribution by class">
+</p>
+
+**Result:** SMOTE raises explicit-track recall from **39.5 % → 62.8 % (+59 % relative)** and macro-F1 from **0.760 → 0.795**, for a negligible −0.4 pt ROC-AUC. The notebook also gives a **use-case guide**:
+
+- **SMOTE** is the best general trade-off.
+- **Tomek + under-sampling** suits cases where a missed positive is very costly, such as parental-control filters (87 % recall).
+- The **baseline** suits cases where false alarms must be minimal.
+
+---
+
+## 🏆 Results scoreboard
+
+| Task | Best model | Headline result |
+|---|---|---|
+| Outlier detection | LOF (k = 15) | 5,700 anomalous / duplicate tracks removed |
+| Cluster discovery | K-Means (k = 9) | Clusters recovered with **97.5 %** accuracy by a neural validator |
+| Genre classification (10 classes) | Random Forest | **58.5 %** accuracy (5.8× random), **0.90** macro ROC-AUC |
+| Genre suggestion | Residual deep MLP | **84.1 % Top-3** / **94.1 % Top-5** accuracy |
+| Popularity regression | Random Forest (800 trees) | **R² = 0.53**, 18× the linear baseline |
+| Explicit-content detection | SMOTE + Random Forest | **0.795 macro-F1**, minority recall +59 % |
+
+---
+
+## 💡 Key insights
+
+1. **Sound is a strong but imperfect proxy for genre.** Audio-only features separate acoustically distinct families very well, such as Metal (AUC 0.95), Latin (0.95) and Classical/Ambient (0.93). Genres defined by *culture or geography* rather than sound are much harder; "World & Regional" scores the lowest AUC (0.81).
+2. **Hip-Hop & R&B is mostly confused with Latin & Brazilian.** This is musically plausible (reggaeton and trap share rhythmic DNA) and shows that the 10-class taxonomy has one natural overlap.
+3. **Popularity is non-linear.** No single feature correlates with it (|ρ| ≤ 0.08), yet ensembles explain over half of its variance.
+4. **Acousticness is the single most informative feature** for genre according to SHAP. `popularity` is the most important feature for the neural net, a sign that genre playlists in this catalogue have very different popularity profiles.
+5. **The right imbalance strategy depends on the cost of each error.** This project measures the trade-off explicitly instead of picking one method by default.
+
+---
+
+## ⚙️ Engineering highlights
+
+- **Leakage-aware design.** `duration_ms` was dropped after conversion, `explicit` was excluded from its own predictor set, `popularity` was excluded from the regression inputs, and resampling happens only inside CV folds.
+- **Robust validation.** Stratified splits, `StratifiedKFold`, `RepeatedKFold`, OOB scores, train-vs-test gap monitoring and multi-metric scoring are used throughout.
+- **Data-driven hyperparameters.** The k-distance elbow sets LOF's `n_neighbors`, automatic silhouette local-maxima detection sets *k*, and large grid searches tune the models (up to **14,700 fits** for the decision tree).
+- **Modern deep-learning recipe.** Residual connections, LayerNorm, GELU, attention-style gating, AdamW, warm-up + cosine LR, gradient clipping, smoothed class weights, checkpointing and TensorBoard logging.
+- **Explainability at three levels.** Global (permutation, SHAP mean |value|), per-class (SHAP stacked bars, gradient heatmaps) and per-prediction (SHAP waterfall, local impact bars).
+- **Hardware-aware.** TensorFlow-Metal on an Apple **M3 Ultra** GPU (96 GB unified memory), with all CPU cores used for scikit-learn grid searches (`n_jobs=-1`).
+- **Consistent visual identity.** One custom dark theme is shared by every notebook, giving publication-ready figures.
+
+---
+
+## 📁 Repository structure
 
 ```text
 .
-├── notebooks/
-│   ├── 1_data_preparation.ipynb
-│   ├── 2_outlier_detection.ipynb
-│   ├── 3_clustering.ipynb
-│   ├── 4_classification_explainability.ipynb
-│   └── 5_regression.ipynb
-├── results/
-│   ├── *_cv_results.csv
-│   ├── *_best_params.json
-│   └── metrics_snapshots/*.json
-├── models/
-│   └── *.joblib
-├── plots/
-│   └── *.png
-├── README.md
-└── requirements.txt
+├── 1_data_understanding_and_preparation.ipynb   # EDA, keymode, 114 → 10 genre taxonomy
+├── 2_outlier_detection.ipynb                    # OHE + scaling, k-distance elbow, LOF, PCA
+├── 3_clustering.ipynb                           # K-Means, silhouette, PCA 2D/3D, NN & tree validation
+├── 4_classification_explainability.ipynb        # Random Forest, residual deep MLP, SHAP, gradients
+├── 5_regression.ipynb                           # Ridge, Linear SVR, RF, XGBoost, Gradient Boosting
+├── 6_imbalanced_learning.ipynb                  # SMOTE, Tomek Links, under-sampling, SMOTETomek
+├── assets/                                      # Figures used in this README
+├── LICENSE
+└── README.md
 ```
 
-> Notebooks are modular and write downstream artifacts to ensure incremental reproducibility.
+At runtime the notebooks also create `Dataset/` (intermediate CSVs), `plots_*/` folders (saved figures) and Keras checkpoints (`*.keras`).
 
 ---
 
-## Reproducible setup
+## 🚀 Getting started
+
+**1 · Get the data.** Download the public *Spotify Tracks Dataset* (114,000 tracks, 114 genres, available on Kaggle) and save it as:
+
+```text
+Dataset/spotify_raw.csv
+```
+
+**2 · Create the environment.**
 
 ```bash
-# 1) Create environment
-conda create -n spotify-ml python=3.10 -y
-conda activate spotify-ml
+conda create -n soundpulse python=3.10 -y
+```
 
-# 2) Install deps
-pip install -r requirements.txt
+```bash
+conda activate soundpulse
+```
 
-# 3) Start notebooks
+```bash
+pip install numpy pandas matplotlib seaborn scikit-learn imbalanced-learn xgboost shap tensorflow jupyterlab
+```
+
+On Apple Silicon, also install `tensorflow-metal` to train on the GPU.
+
+**3 · Run the notebooks in order.** Each one reads the CSV produced by the previous one:
+
+```text
+1 → spotify_prepared.csv → 2 → spotify_cleaned.csv → 3 · 4 · 5 · 6
+```
+
+```bash
 jupyter lab
 ```
 
-**Minimal `requirements.txt`:**
+---
 
-```txt
-numpy
-pandas
-scikit-learn
-xgboost
-shap
-matplotlib
-joblib
-```
+## 🧭 Roadmap
+
+- [ ] Ordinal / Focal-loss variants of the deep classifier to further lift minority genres
+- [ ] Threshold tuning and probability calibration for the explicit-content detector
+- [ ] Hierarchical classification (macro-genre → sub-genre) using the 114 original labels
+- [ ] Deduplicate cross-listed tracks before the train/test split
+- [ ] Package the pipeline as a CLI and add a Streamlit dashboard for non-technical stakeholders
 
 ---
 
-## How to run
+## 👤 About the author
 
-1. Run `notebooks/1_data_preparation.ipynb` to produce cleaned splits (`X_train`, `X_test`, `y_train`, `y_test`).
-2. Run `notebooks/2_outlier_detection.ipynb` to flag anomalies (optional but recommended for QA).
-3. Run `notebooks/3_clustering.ipynb` for latent segment discovery.
-4. Run `notebooks/4_classification_explainability.ipynb` for 10‑class genre models + SHAP.
-5. Run `notebooks/5_regression.ipynb` for popularity forecasting (RF/XGB/GBR/Ridge/SVR).
+<div align="center">
 
-All stages persist models (`models/`), CV logs (`results/`), and plots (`plots/`).
+**Giuseppe Muschetta**<br>
+M.Sc. in Data Science & Business Informatics, University of Pisa
 
----
+[![GitHub](https://img.shields.io/badge/GitHub-peppe212-181717?logo=github)](https://github.com/peppe212)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Giuseppe%20Muschetta-0A66C2?logo=linkedin)](https://www.linkedin.com/in/giuseppemuschetta/)
+[![Email](https://img.shields.io/badge/Email-peppe212%40gmail.com-D14836?logo=gmail&logoColor=white)](mailto:peppe212@gmail.com)
 
-## Models and evaluation
+*Open to roles and collaborations in Data Science, Machine Learning and Explainable AI.*
 
-| Task           | Models                                                                 | Primary metrics                                        | Notes                                                          |
-| -------------- | ---------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
-| Classification | Linear SVC, RandomForestClassifier, **Deep MLP (Keras: LayerNorm+GELU, decaying Dropout 0.45→0.10, AdamW warm-up+cosine)** with **Imbalanced Learning** (SMOTE/SMOTE-Tomek/undersampling, class/sample weights, Focal Loss) | Accuracy, **Balanced Accuracy**, **Macro-F1**, Top-3/Top-5, ROC-AUC (OvR) | 10 classes (114 → 10); SHAP waterfalls; confusion matrices     |
-| Regression     | Ridge, Linear SVR, RF, XGB, GBR                                        | R², RMSE, MAE                                           | Uniform CV, parity/residual diagnostics, permutation importance |
+</div>
 
 ---
 
-## Highlights
+## 📄 License
 
-* **Full‑stack ML**: from EDA to decisions, not just a single model.
-* **Explainability‑first**: SHAP (global & local) + permutation importance embedded in the workflow.
-* **Engineering discipline**: deterministic splits, RepeatedKFold CV, artifact persistence, clean plots.
-* **Stakeholder alignment**: outputs framed for A\&R, curation, and marketing decisions.
+Released under the [MIT License](LICENSE) © 2025 Giuseppe Muschetta.
 
----
+<div align="center">
 
-## Roadmap
+⭐ **If you found this project useful or inspiring, consider giving it a star!** ⭐
 
-* Time‑aware evaluation across release windows.
-* Model calibration & conformal prediction for uncertainty‑aware decisions.
-* Package regression/classification pipelines as a **CLI** with config management.
-* Optional **Streamlit** dashboard for non‑technical stakeholders.
-
----
-
-## Hire me for
-
-- **End-to-end Data Science & ML** — from EDA to deployment-ready artifacts: reproducible CV, persisted models/metrics/plots, and clean hand-offs.
-- **Explainable classification at scale** — 10-class taxonomy (114 → 10) with a class-weighted **Deep MLP** (LayerNorm + GELU, decaying Dropout 0.45→0.10, AdamW warm-up + cosine) alongside strong baselines (Linear SVC, RandomForest).
-- **Robust regression & forecasting** — Ridge / Linear SVR / RF / XGB / GBR with parity & residual diagnostics and permutation importance for driver analysis.
-- **MLOps-minded delivery** — deterministic seeds, modular repo, `joblib` models, `results/*.csv` logs, and CI-friendly structure; GPU/Apple-Silicon aware.
-- **Stakeholder-ready storytelling** — SHAP waterfalls and summary plots distilled into concise, decision-oriented reports for A&R, curation, and marketing.
-- **Fast iteration with measurable ROI** — tight feedback loops, metric tracking, and experiment logs that make progress visible and comparable.
-
-
-**Giuseppe Muschetta**
-*M.Sc. in Computer Science (Data Science & Business Informatics), University of Pisa*
-
-* GitHub: https://github.com/peppe212
-* LinkedIn: https://www.linkedin.com/in/giuseppemuschetta/
-* Email: peppe212@gmail.com
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
+</div>
