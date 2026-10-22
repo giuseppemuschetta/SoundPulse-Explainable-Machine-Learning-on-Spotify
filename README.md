@@ -434,9 +434,10 @@ jupyter lab
 **Giuseppe Muschetta**<br>
 M.Sc. in Data Science & Business Informatics, University of Pisa
 
-[![GitHub](https://img.shields.io/badge/GitHub-peppe212-181717?logo=github)](https://github.com/peppe212)
+[![Portfolio](https://img.shields.io/badge/Portfolio-giuseppemuschetta.com-1F4A8A)](https://giuseppemuschetta.com)
+[![GitHub](https://img.shields.io/badge/GitHub-giuseppemuschetta-181717?logo=github)](https://github.com/giuseppemuschetta)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Giuseppe%20Muschetta-0A66C2?logo=linkedin)](https://www.linkedin.com/in/giuseppemuschetta/)
-[![Email](https://img.shields.io/badge/Email-peppe212%40gmail.com-D14836?logo=gmail&logoColor=white)](mailto:peppe212@gmail.com)
+[![Email](https://img.shields.io/badge/Email-giuseppe.muschetta%40pm.me-6D4AFF?logo=protonmail&logoColor=white)](mailto:giuseppe.muschetta@pm.me)
 
 *Open to roles and collaborations in Data Science, Machine Learning and Explainable AI.*
 
