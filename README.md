@@ -5,6 +5,8 @@
 
 **From raw audio features to explainable predictions — data preparation, anomaly detection, clustering, deep learning, regression and imbalanced learning in one pipeline.**
 
+📄 **[Read the full report (PDF)](REPORT.pdf)**
+
 ---
 
 **Author:** Giuseppe Muschetta<br>
@@ -374,7 +376,8 @@ All resampling is done **inside `imblearn.Pipeline`** and therefore only on the 
 ├── 6_imbalanced_learning.ipynb                  # SMOTE, Tomek Links, under-sampling, SMOTETomek
 ├── assets/                                      # Figures used in this README
 ├── LICENSE
-└── README.md
+├── README.md
+└── REPORT.pdf                                   # Full project report (26 pages)
 ```
 
 At runtime the notebooks also create `Dataset/` (intermediate CSVs), `plots_*/` folders (saved figures) and Keras checkpoints (`*.keras`).
